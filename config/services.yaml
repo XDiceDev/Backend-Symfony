@@ -26,3 +26,7 @@ services:
     App\Service\CottageService:
         arguments:
             $dataFile: '%kernel.project_dir%/var/cottages.csv'
+
+    App\Service\BookingService:
+        arguments:
+            $bookingsFile: '%kernel.project_dir%/var/bookings.csv'
