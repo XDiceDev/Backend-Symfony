@@ -2,66 +2,99 @@
 
 namespace App\Tests\Controller;
 
-use App\Service\BookingService;
-use App\Service\CottageService;
-use PHPUnit\Framework\TestCase;
+use App\Entity\Booking;
+use App\Entity\Cottage;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 
 class CottageApiControllerTest extends WebTestCase
 {
     private $client;
-    private $cottageServiceMock;
-    private $bookingServiceMock;
+    private EntityManagerInterface $entityManager;
 
     protected function setUp(): void
     {
         $this->client = static::createClient();
-        
-        $this->cottageServiceMock = $this->createMock(CottageService::class);
-        $this->bookingServiceMock = $this->createMock(BookingService::class);
+        $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
 
-        $this->client->getContainer()->set(CottageService::class, $this->cottageServiceMock);
-        $this->client->getContainer()->set(BookingService::class, $this->bookingServiceMock);
+        $this->entityManager->createQuery('DELETE FROM App\Entity\Booking')->execute();
+        $this->entityManager->createQuery('DELETE FROM App\Entity\Cottage')->execute();
+        $this->entityManager->flush();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->entityManager->close();
+        parent::tearDown();
     }
 
     public function testGetCottages(): void
     {
-        $cottages = [
-            ['id' => 1, 'title' => 'Beach House', 'amenities' => 'WiFi|Pool', 'beds' => 4, 'distanceToSea' => 100],
-            ['id' => 2, 'title' => 'Mountain Cabin', 'amenities' => 'Fireplace', 'beds' => 2, 'distanceToSea' => 1000]
-        ];
+        $cottage1 = (new Cottage())
+            ->setName('Beach House')
+            ->setAmenities('WiFi|Pool')
+            ->setBedCount(4)
+            ->setRowFromSea(100)
+            ->setIsAvailable(true);
+        $cottage2 = (new Cottage())
+            ->setName('Mountain Cabin')
+            ->setAmenities('Fireplace')
+            ->setBedCount(2)
+            ->setRowFromSea(1000)
+            ->setIsAvailable(true);
+        $cottage3 = (new Cottage())
+            ->setName('City Apartment')
+            ->setAmenities('Kitchen')
+            ->setBedCount(3)
+            ->setRowFromSea(500)
+            ->setIsAvailable(false);
 
-        $this->cottageServiceMock
-            ->expects($this->once())
-            ->method('getAvailableCottages')
-            ->willReturn($cottages);
+        $this->entityManager->persist($cottage1);
+        $this->entityManager->persist($cottage2);
+        $this->entityManager->persist($cottage3);
+        $this->entityManager->flush();
 
         $this->client->request('GET', '/api/cottages');
 
         $response = $this->client->getResponse();
 
-        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-        $this->assertJson($response->getContent());
-        $this->assertEquals($cottages, json_decode($response->getContent(), true));
+        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode(), 'Должен возвращать статус 200');
+        $this->assertJson($response->getContent(), 'Ответ должен быть в формате JSON');
+        $this->assertEquals([
+            [
+                'id' => $cottage1->getId(),
+                'name' => 'Beach House',
+                'amenities' => 'WiFi|Pool',
+                'bedCount' => 4,
+                'rowFromSea' => 100
+            ],
+            [
+                'id' => $cottage2->getId(),
+                'name' => 'Mountain Cabin',
+                'amenities' => 'Fireplace',
+                'bedCount' => 2,
+                'rowFromSea' => 1000
+            ]
+        ], json_decode($response->getContent(), true), 'Должен возвращать только доступные коттеджи');
     }
 
     public function testCreateBookingSuccess(): void
     {
+        $cottage = (new Cottage())
+            ->setName('Beach House')
+            ->setAmenities('WiFi|Pool')
+            ->setBedCount(4)
+            ->setRowFromSea(100)
+            ->setIsAvailable(true);
+        $this->entityManager->persist($cottage);
+        $this->entityManager->flush();
+
         $requestData = [
             'phone' => '+1234567890',
-            'cottageId' => 1,
+            'cottageId' => $cottage->getId(),
             'comment' => 'Test booking'
         ];
-
-        $this->bookingServiceMock
-            ->expects($this->once())
-            ->method('createBooking')
-            ->with(
-                $this->equalTo($requestData['phone']),
-                $this->equalTo($requestData['cottageId']),
-                $this->equalTo($requestData['comment'])
-            );
 
         $this->client->request(
             'POST',
@@ -74,9 +107,9 @@ class CottageApiControllerTest extends WebTestCase
 
         $response = $this->client->getResponse();
 
-        $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
-        $this->assertJson($response->getContent());
-        $this->assertEquals(['status' => 'Booking created successfully'], json_decode($response->getContent(), true));
+        $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode(), 'Должен возвращать статус 201');
+        $this->assertJson($response->getContent(), 'Ответ должен быть в формате JSON');
+        $this->assertEquals(['status' => 'Booking created successfully'], json_decode($response->getContent(), true), 'Должен возвращать сообщение об успешном создании брони');
     }
 
     public function testCreateBookingMissingFields(): void
@@ -85,10 +118,6 @@ class CottageApiControllerTest extends WebTestCase
             'phone' => '+1234567890'
         ];
 
-        $this->bookingServiceMock
-            ->expects($this->never())
-            ->method('createBooking');
-
         $this->client->request(
             'POST',
             '/api/bookings',
@@ -100,22 +129,31 @@ class CottageApiControllerTest extends WebTestCase
 
         $response = $this->client->getResponse();
 
-        $this->assertEquals(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
-        $this->assertJson($response->getContent());
-        $this->assertEquals(['error' => 'Phone and cottageId are required'], json_decode($response->getContent(), true));
+        $this->assertEquals(Response::HTTP_BAD_REQUEST, $response->getStatusCode(), 'Должен возвращать статус 400');
+        $this->assertJson($response->getContent(), 'Ответ должен быть в формате JSON');
+        $this->assertEquals(['error' => 'Phone and cottageId are required'], json_decode($response->getContent(), true), 'Должен возвращать ошибку о пропущенных полях');
     }
 
     public function testUpdateCommentSuccess(): void
     {
-        $phone = '+1234567890';
-        $cottageId = 1;
-        $comment = 'Updated comment';
+        $cottage = (new Cottage())
+            ->setName('Beach House')
+            ->setAmenities('WiFi|Pool')
+            ->setBedCount(4)
+            ->setRowFromSea(100)
+            ->setIsAvailable(true);
+        $this->entityManager->persist($cottage);
 
-        $this->bookingServiceMock
-            ->expects($this->once())
-            ->method('updateBookingComment')
-            ->with($phone, $cottageId, $comment)
-            ->willReturn(true);
+        $booking = (new Booking())
+            ->setPhone('+1234567890')
+            ->setCottage($cottage)
+            ->setComment('Initial comment');
+        $this->entityManager->persist($booking);
+        $this->entityManager->flush();
+
+        $phone = '+1234567890';
+        $cottageId = $cottage->getId();
+        $comment = 'Updated comment';
 
         $this->client->request(
             'PUT',
@@ -125,22 +163,25 @@ class CottageApiControllerTest extends WebTestCase
 
         $response = $this->client->getResponse();
 
-        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-        $this->assertJson($response->getContent());
-        $this->assertEquals(['status' => 'Comment updated'], json_decode($response->getContent(), true));
+        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode(), 'Должен возвращать статус 200');
+        $this->assertJson($response->getContent(), 'Ответ должен быть в формате JSON');
+        $this->assertEquals(['status' => 'Comment updated'], json_decode($response->getContent(), true), 'Должен возвращать сообщение об обновлении комментария');
     }
 
     public function testUpdateCommentNotFound(): void
     {
-        $phone = '+1234567890';
-        $cottageId = 1;
-        $comment = 'Updated comment';
+        $cottage = (new Cottage())
+            ->setName('Beach House')
+            ->setAmenities('WiFi|Pool')
+            ->setBedCount(4)
+            ->setRowFromSea(100)
+            ->setIsAvailable(true);
+        $this->entityManager->persist($cottage);
+        $this->entityManager->flush();
 
-        $this->bookingServiceMock
-            ->expects($this->once())
-            ->method('updateBookingComment')
-            ->with($phone, $cottageId, $comment)
-            ->willReturn(false);
+        $phone = '+1234567890';
+        $cottageId = $cottage->getId();
+        $comment = 'Updated comment';
 
         $this->client->request(
             'PUT',
@@ -150,21 +191,30 @@ class CottageApiControllerTest extends WebTestCase
 
         $response = $this->client->getResponse();
 
-        $this->assertEquals(Response::HTTP_NOT_FOUND, $response->getStatusCode());
-        $this->assertJson($response->getContent());
-        $this->assertEquals(['error' => 'Booking not found'], json_decode($response->getContent(), true));
+        $this->assertEquals(Response::HTTP_NOT_FOUND, $response->getStatusCode(), 'Должен возвращать статус 404');
+        $this->assertJson($response->getContent(), 'Ответ должен быть в формате JSON');
+        $this->assertEquals(['error' => 'Booking not found'], json_decode($response->getContent(), true), 'Должен возвращать ошибку о ненайденном бронировании');
     }
 
     public function testDeleteBookingSuccess(): void
     {
-        $phone = '+1234567890';
-        $cottageId = 1;
+        $cottage = (new Cottage())
+            ->setName('Beach House')
+            ->setAmenities('WiFi|Pool')
+            ->setBedCount(4)
+            ->setRowFromSea(100)
+            ->setIsAvailable(true);
+        $this->entityManager->persist($cottage);
 
-        $this->bookingServiceMock
-            ->expects($this->once())
-            ->method('deleteBooking')
-            ->with($phone, $cottageId)
-            ->willReturn(true);
+        $booking = (new Booking())
+            ->setPhone('+1234567890')
+            ->setCottage($cottage)
+            ->setComment('Test booking');
+        $this->entityManager->persist($booking);
+        $this->entityManager->flush();
+
+        $phone = '+1234567890';
+        $cottageId = $cottage->getId();
 
         $this->client->request(
             'DELETE',
@@ -174,21 +224,24 @@ class CottageApiControllerTest extends WebTestCase
 
         $response = $this->client->getResponse();
 
-        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-        $this->assertJson($response->getContent());
-        $this->assertEquals(['status' => 'Booking deleted'], json_decode($response->getContent(), true));
+        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode(), 'Должен возвращать статус 200');
+        $this->assertJson($response->getContent(), 'Ответ должен быть в формате JSON');
+        $this->assertEquals(['status' => 'Booking deleted'], json_decode($response->getContent(), true), 'Должен возвращать сообщение об удалении брони');
     }
 
     public function testDeleteBookingNotFound(): void
     {
-        $phone = '+1234567890';
-        $cottageId = 1;
+        $cottage = (new Cottage())
+            ->setName('Beach House')
+            ->setAmenities('WiFi|Pool')
+            ->setBedCount(4)
+            ->setRowFromSea(100)
+            ->setIsAvailable(true);
+        $this->entityManager->persist($cottage);
+        $this->entityManager->flush();
 
-        $this->bookingServiceMock
-            ->expects($this->once())
-            ->method('deleteBooking')
-            ->with($phone, $cottageId)
-            ->willReturn(false);
+        $phone = '+1234567890';
+        $cottageId = $cottage->getId();
 
         $this->client->request(
             'DELETE',
@@ -198,8 +251,8 @@ class CottageApiControllerTest extends WebTestCase
 
         $response = $this->client->getResponse();
 
-        $this->assertEquals(Response::HTTP_NOT_FOUND, $response->getStatusCode());
-        $this->assertJson($response->getContent());
-        $this->assertEquals(['error' => 'Booking not found'], json_decode($response->getContent(), true));
+        $this->assertEquals(Response::HTTP_NOT_FOUND, $response->getStatusCode(), 'Должен возвращать статус 404');
+        $this->assertJson($response->getContent(), 'Ответ должен быть в формате JSON');
+        $this->assertEquals(['error' => 'Booking not found'], json_decode($response->getContent(), true), 'Должен возвращать ошибку о ненайденном бронировании');
     }
 }
