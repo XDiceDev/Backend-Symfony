@@ -62,7 +62,7 @@ class CottageApiController extends AbstractController
 
 
     #[Route('/api/bookings/delete/', methods: ['DELETE'])]
-    public function deleteBooking(BookingService $bookingService): Response
+    public function deleteBooking(Request $request, BookingService $bookingService): Response
     {
         $phone = $request->request->get('phone', '');
         $cottageId = $request->request->get('cottageId', 0);
