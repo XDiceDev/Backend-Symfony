@@ -1,79 +1,63 @@
 <?php
+
 namespace App\Service;
+
+use App\Entity\Booking;
+use App\Entity\Cottage;
+use Doctrine\ORM\EntityManagerInterface;
 
 class BookingService
 {
-    private string $bookingsFile;
+    private EntityManagerInterface $entityManager;
 
-    public function __construct(string $bookingsFile)
+    public function __construct(EntityManagerInterface $entityManager)
     {
-        $this->bookingsFile = $bookingsFile;
-        if (!file_exists($this->bookingsFile))
-        {
-            file_put_contents($this->bookingsFile, "phone,cottage_id,comment\n");
-        }
+        $this->entityManager = $entityManager;
     }
 
     public function createBooking(string $phone, int $cottageId, string $comment = ''): void
     {
-        $data = [
-            'phone' => $phone,
-            'cottage_id' => $cottageId,
-            'comment' => $comment
-        ];
+        $cottage = $this->entityManager->getRepository(Cottage::class)->find($cottageId);
+        if (!$cottage) {
+            throw new \InvalidArgumentException('Cottage not found');
+        }
 
-        $file = fopen($this->bookingsFile, 'a');
-        fputcsv($file, $data);
-        fclose($file);
+        $booking = new Booking();
+        $booking->setPhone($phone)
+                ->setComment($comment)
+                ->setCottage($cottage);
+
+        $this->entityManager->persist($booking);
+        $this->entityManager->flush();
     }
 
     public function updateBookingComment(string $phone, int $cottageId, string $newComment): bool
     {
-        $lines = file($this->bookingsFile);
-        $updated = false;
+        $booking = $this->entityManager->getRepository(Booking::class)
+            ->findOneBy(['phone' => $phone, 'cottage' => $cottageId]);
 
-        foreach ($lines as &$line)
-        {
-            $data = str_getcsv($line);
-            if ($data[0] === $phone && (int)$data[1] === $cottageId)
-            {
-                $data[2] = $newComment;
-                $line = implode(',', $data) . "\n";
-                $updated = true;
-                break;
-            }
+        if (!$booking) {
+            return false;
         }
 
-        if ($updated)
-        {
-            file_put_contents($this->bookingsFile, implode('', $lines));
-        }
+        $booking->setComment($newComment);
+        $this->entityManager->flush();
 
-        return $updated;
+        return true;
     }
 
     public function deleteBooking(string $phone, int $cottageId): bool
     {
-        $lines = file($this->bookingsFile);
-        $found = false;
-        $result = [];
+        $booking = $this->entityManager->getRepository(Booking::class)
+            ->findOneBy(['phone' => $phone, 'cottage' => $cottageId]);
 
-        foreach ($lines as $line)
-        {
-            $data = str_getcsv($line);
-            if ($data[0] === $phone && (int)$data[1] === $cottageId)
-            {
-                $found = true;
-                continue;
-            }
-            $result[] = $line;
+        if (!$booking) {
+            return false;
         }
 
-        if ($found)
-        {
-            file_put_contents($this->bookingsFile, implode('', $result));
-        }
+        $this->entityManager->remove($booking);
+        $this->entityManager->flush();
 
-        return $found;
+        return true;
     }
 }
