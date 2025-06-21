@@ -2,88 +2,138 @@
 
 namespace App\Tests\Service;
 
+use App\Entity\Cottage;
 use App\Service\CottageService;
-use PHPUnit\Framework\TestCase;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-class CottageServiceTest extends TestCase
+class CottageServiceTest extends KernelTestCase
 {
-    private string $tempFile;
+    private EntityManagerInterface $entityManager;
     private CottageService $cottageService;
 
     protected function setUp(): void
     {
-        $this->tempFile = tempnam(sys_get_temp_dir(), 'cottages_test_');
-        $this->cottageService = new CottageService($this->tempFile);
+        self::bootKernel();
+        $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $this->cottageService = new CottageService($this->entityManager);
+
+        $this->entityManager->createQuery('DELETE FROM App\Entity\Cottage')->execute();
+        $this->entityManager->flush();
     }
 
     protected function tearDown(): void
     {
-        if (file_exists($this->tempFile))
-        {
-            unlink($this->tempFile);
-        }
+        $this->entityManager->close();
+        parent::tearDown();
     }
 
-    public function testGetAvailableCottagesEmptyFile(): void
+    public function testGetAvailableCottagesEmptyDatabase(): void
     {
         $cottages = $this->cottageService->getAvailableCottages();
-        $this->assertIsArray($cottages, 'Should return an array');
-        $this->assertEmpty($cottages, 'Should return empty array for empty file');
+
+        $this->assertIsArray($cottages, 'Должен возвращать массив');
+        $this->assertEmpty($cottages, 'Должен возвращать пустой массив для пустой базы данных');
     }
 
     public function testGetAvailableCottagesWithAvailableCottages(): void
     {
-        $testData = [
-            'id,title,amenities,beds,distanceToSea,isAvailable',
-            '1,Beach House,WiFi|Pool,4,100,1',
-            '2,Mountain Cabin,Fireplace,2,1000,1',
-            '3,City Apartment,Kitchen,3,500,0'
-        ];
-        file_put_contents($this->tempFile, implode("\n", $testData) . "\n");
+        $cottage1 = (new Cottage())
+            ->setName('Beach House')
+            ->setAmenities('WiFi|Pool')
+            ->setBedCount(4)
+            ->setRowFromSea(100)
+            ->setIsAvailable(true);
+        $cottage2 = (new Cottage())
+            ->setName('Mountain Cabin')
+            ->setAmenities('Fireplace')
+            ->setBedCount(2)
+            ->setRowFromSea(1000)
+            ->setIsAvailable(true);
+        $cottage3 = (new Cottage())
+            ->setName('City Apartment')
+            ->setAmenities('Kitchen')
+            ->setBedCount(3)
+            ->setRowFromSea(500)
+            ->setIsAvailable(false);
+
+        $this->entityManager->persist($cottage1);
+        $this->entityManager->persist($cottage2);
+        $this->entityManager->persist($cottage3);
+        $this->entityManager->flush();
 
         $cottages = $this->cottageService->getAvailableCottages();
 
-        $this->assertCount(2, $cottages, 'Should return only available cottages');
+        $this->assertCount(2, $cottages, 'Должен возвращать только доступные коттеджи');
         $this->assertEquals([
             [
-                'id' => 1,
-                'title' => 'Beach House',
+                'id' => $cottage1->getId(),
+                'name' => 'Beach House',
                 'amenities' => 'WiFi|Pool',
-                'beds' => 4,
-                'distanceToSea' => 100
+                'bedCount' => 4,
+                'rowFromSea' => 100
             ],
             [
-                'id' => 2,
-                'title' => 'Mountain Cabin',
+                'id' => $cottage2->getId(),
+                'name' => 'Mountain Cabin',
                 'amenities' => 'Fireplace',
-                'beds' => 2,
-                'distanceToSea' => 1000
+                'bedCount' => 2,
+                'rowFromSea' => 1000
             ]
-        ], $cottages, 'Should return correct cottage data');
+        ], array_map(function ($cottage) {
+            return [
+                'id' => $cottage['id'],
+                'name' => $cottage['name'],
+                'amenities' => $cottage['amenities'],
+                'bedCount' => $cottage['bedCount'],
+                'rowFromSea' => $cottage['rowFromSea']
+            ];
+        }, $cottages), 'Должен возвращать корректные данные коттеджей');
     }
 
     public function testGetAvailableCottagesWithNoAvailableCottages(): void
     {
-        $testData = [
-            'id,title,amenities,beds,distanceToSea,isAvailable',
-            '1,Beach House,WiFi|Pool,4,100,0',
-            '2,Mountain Cabin,Fireplace,2,1000,0'
-        ];
-        file_put_contents($this->tempFile, implode("\n", $testData) . "\n");
+        $cottage1 = (new Cottage())
+            ->setName('Beach House')
+            ->setAmenities('WiFi|Pool')
+            ->setBedCount(4)
+            ->setRowFromSea(100)
+            ->setIsAvailable(false);
+        $cottage2 = (new Cottage())
+            ->setName('Mountain Cabin')
+            ->setAmenities('Fireplace')
+            ->setBedCount(2)
+            ->setRowFromSea(1000)
+            ->setIsAvailable(false);
+
+        $this->entityManager->persist($cottage1);
+        $this->entityManager->persist($cottage2);
+        $this->entityManager->flush();
 
         $cottages = $this->cottageService->getAvailableCottages();
 
-        $this->assertIsArray($cottages, 'Should return an array');
-        $this->assertEmpty($cottages, 'Should return empty array when no cottages are available');
+        $this->assertIsArray($cottages, 'Должен возвращать массив');
+        $this->assertEmpty($cottages, 'Должен возвращать пустой массив, если нет доступных коттеджей');
     }
 
-    public function testGetAvailableCottagesWithInvalidFile(): void
+    public function testGetAvailableCottagesWithInvalidData(): void
     {
-        file_put_contents($this->tempFile, "invalid,data\n");
+        $cottage = (new Cottage())
+            ->setAmenities('WiFi')
+            ->setBedCount(2)
+            ->setRowFromSea(100)
+            ->setIsAvailable(true);
+
+        try {
+            $this->entityManager->persist($cottage);
+            $this->entityManager->flush();
+            $this->fail('Ожидалось исключение из-за отсутствия поля name');
+        } catch (\Exception $e) {
+            $this->assertStringContainsString('NOT NULL', $e->getMessage());
+        }
 
         $cottages = $this->cottageService->getAvailableCottages();
-
-        $this->assertIsArray($cottages, 'Should return an array even with invalid data');
-        $this->assertEmpty($cottages, 'Should return empty array for invalid file format');
+        $this->assertIsArray($cottages, 'Должен возвращать массив');
+        $this->assertEmpty($cottages, 'Должен возвращать пустой массив при некорректных данных');
     }
 }

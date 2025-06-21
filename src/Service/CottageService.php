@@ -16,7 +16,17 @@ class CottageService
 
     public function getAvailableCottages(): array
     {
-        return $this->entityManager->getRepository(Cottage::class)
+        $cottages = $this->entityManager->getRepository(Cottage::class)
             ->findBy(['isAvailable' => true]);
+
+        return array_map(function (Cottage $cottage) {
+            return [
+                'id' => $cottage->getId(),
+                'name' => $cottage->getName(),
+                'amenities' => $cottage->getAmenities(),
+                'bedCount' => $cottage->getBedCount(),
+                'rowFromSea' => $cottage->getRowFromSea()
+            ];
+        }, $cottages);
     }
 }

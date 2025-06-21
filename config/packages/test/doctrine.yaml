@@ -1,0 +1,4 @@
+# config/packages/test/doctrine.yaml
+doctrine:
+    dbal:
+        url: 'sqlite:///%kernel.project_dir%/var/test.db'
