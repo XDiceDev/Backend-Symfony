@@ -2,52 +2,74 @@
 
 namespace App\Tests\Controller;
 
+use App\Entity\Booking;
+use App\Entity\Cottage;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\Filesystem\Path;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpClient\HttpClient;
 
 class CottageApiScenarioTest extends WebTestCase
 {
-    private string $kernelDir;
     private $client;
+    private EntityManagerInterface $entityManager;
 
     protected function setUp(): void
     {
-        parent::setUp();
         $this->client = static::createClient();
-        $this->kernelDir = static::$kernel->getProjectDir();
-        
-        $this->client->getContainer()->set(
-            \App\Service\CottageService::class,
-            new \App\Service\CottageService(
-                Path::join($this->kernelDir, 'tests/resources/cottages_test.csv')
-            )
-        );
-        
-        $this->client->getContainer()->set(
-            \App\Service\BookingService::class,
-            new \App\Service\BookingService(
-                Path::join($this->kernelDir, 'tests/resources/bookings_test.csv')
-            )
-        );
+        $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
+
+        $this->entityManager->createQuery('DELETE FROM App\Entity\Booking')->execute();
+        $this->entityManager->createQuery('DELETE FROM App\Entity\Cottage')->execute();
+        $this->entityManager->flush();
     }
 
-    public function testGetCottages()
+    protected function tearDown(): void
     {
+        $this->entityManager->close();
+        parent::tearDown();
+    }
+
+    public function testGetCottages(): void
+    {
+        $cottage1 = (new Cottage())
+            ->setName('Beach House')
+            ->setAmenities('WiFi|Pool')
+            ->setBedCount(4)
+            ->setRowFromSea(100)
+            ->setIsAvailable(true);
+        $cottage2 = (new Cottage())
+            ->setName('Mountain Cabin')
+            ->setAmenities('Fireplace')
+            ->setBedCount(2)
+            ->setRowFromSea(1000)
+            ->setIsAvailable(true);
+
+        $this->entityManager->persist($cottage1);
+        $this->entityManager->persist($cottage2);
+        $this->entityManager->flush();
+
         $this->client->request('GET', '/api/cottages');
 
-        $this->assertResponseIsSuccessful();
-        $this->assertJson($this->client->getResponse()->getContent());
-        
+        $this->assertResponseIsSuccessful('Должен возвращать статус 200');
+        $this->assertJson($this->client->getResponse()->getContent(), 'Ответ должен быть в формате JSON');
+
         $responseData = json_decode($this->client->getResponse()->getContent(), true);
-        $this->assertCount(2, $responseData);
-        $this->assertEquals('Beach Cottage', $responseData[0]['title']);
-        $this->assertEquals('Ocean View', $responseData[1]['title']);
+        $this->assertCount(2, $responseData, 'Должен возвращать два коттеджа');
+        $this->assertEquals('Beach House', $responseData[0]['name'], 'Первый коттедж должен быть Beach House');
+        $this->assertEquals('Mountain Cabin', $responseData[1]['name'], 'Второй коттедж должен быть Mountain Cabin');
     }
 
-    public function testCreateBooking()
+    public function testCreateBooking(): void
     {
+        $cottage = (new Cottage())
+            ->setName('Beach House')
+            ->setAmenities('WiFi|Pool')
+            ->setBedCount(4)
+            ->setRowFromSea(100)
+            ->setIsAvailable(true);
+        $this->entityManager->persist($cottage);
+        $this->entityManager->flush();
+
         $this->client->request(
             'POST',
             '/api/bookings',
@@ -56,19 +78,20 @@ class CottageApiScenarioTest extends WebTestCase
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
                 'phone' => '+1234567890',
-                'cottageId' => 1,
+                'cottageId' => $cottage->getId(),
                 'comment' => 'Test booking'
             ])
         );
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
+        $this->assertResponseStatusCodeSame(Response::HTTP_CREATED, 'Должен возвращать статус 201');
         $this->assertJsonStringEqualsJsonString(
             json_encode(['status' => 'Booking created successfully']),
-            $this->client->getResponse()->getContent()
+            $this->client->getResponse()->getContent(),
+            'Должен возвращать сообщение об успешном создании брони'
         );
     }
 
-    public function testCreateBookingMissingParameters()
+    public function testCreateBookingMissingParameters(): void
     {
         $this->client->request(
             'POST',
@@ -79,39 +102,50 @@ class CottageApiScenarioTest extends WebTestCase
             json_encode(['cottageId' => 1])
         );
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST, 'Должен возвращать статус 400');
         $this->assertJsonStringEqualsJsonString(
             json_encode(['error' => 'Phone and cottageId are required']),
-            $this->client->getResponse()->getContent()
+            $this->client->getResponse()->getContent(),
+            'Должен возвращать ошибку о пропущенных полях'
         );
     }
 
-    public function testUpdateBookingComment()
+    public function testUpdateBookingComment(): void
     {
-        $this->client->getContainer()->get(\App\Service\BookingService::class)->createBooking(
-            '+1234567890',
-            1,
-            'Initial comment'
-        );
+        $cottage = (new Cottage())
+            ->setName('Beach House')
+            ->setAmenities('WiFi|Pool')
+            ->setBedCount(4)
+            ->setRowFromSea(100)
+            ->setIsAvailable(true);
+        $this->entityManager->persist($cottage);
+
+        $booking = (new Booking())
+            ->setPhone('+1234567890')
+            ->setCottage($cottage)
+            ->setComment('Initial comment');
+        $this->entityManager->persist($booking);
+        $this->entityManager->flush();
 
         $this->client->request(
             'PUT',
             '/api/bookings/edit/',
             [
                 'phone' => '+1234567890',
-                'cottageId' => 1,
+                'cottageId' => $cottage->getId(),
                 'comment' => 'Updated comment'
             ]
         );
 
-        $this->assertResponseIsSuccessful();
+        $this->assertResponseIsSuccessful('Должен возвращать статус 200');
         $this->assertJsonStringEqualsJsonString(
             json_encode(['status' => 'Comment updated']),
-            $this->client->getResponse()->getContent()
+            $this->client->getResponse()->getContent(),
+            'Должен возвращать сообщение об обновлении комментария'
         );
     }
 
-    public function testUpdateNonExistentBooking()
+    public function testUpdateNonExistentBooking(): void
     {
         $this->client->request(
             'PUT',
@@ -123,38 +157,49 @@ class CottageApiScenarioTest extends WebTestCase
             ]
         );
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+        $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'Должен возвращать статус 404');
         $this->assertJsonStringEqualsJsonString(
             json_encode(['error' => 'Booking not found']),
-            $this->client->getResponse()->getContent()
+            $this->client->getResponse()->getContent(),
+            'Должен возвращать ошибку о ненайденном бронировании'
         );
     }
 
-    public function testDeleteBooking()
+    public function testDeleteBooking(): void
     {
-        $this->client->getContainer()->get(\App\Service\BookingService::class)->createBooking(
-            '+1234567890',
-            1,
-            'Test booking'
-        );
+        $cottage = (new Cottage())
+            ->setName('Beach House')
+            ->setAmenities('WiFi|Pool')
+            ->setBedCount(4)
+            ->setRowFromSea(100)
+            ->setIsAvailable(true);
+        $this->entityManager->persist($cottage);
+
+        $booking = (new Booking())
+            ->setPhone('+1234567890')
+            ->setCottage($cottage)
+            ->setComment('Test booking');
+        $this->entityManager->persist($booking);
+        $this->entityManager->flush();
 
         $this->client->request(
             'DELETE',
             '/api/bookings/delete/',
             [
                 'phone' => '+1234567890',
-                'cottageId' => 1
+                'cottageId' => $cottage->getId()
             ]
         );
 
-        $this->assertResponseIsSuccessful();
+        $this->assertResponseIsSuccessful('Должен возвращать статус 200');
         $this->assertJsonStringEqualsJsonString(
             json_encode(['status' => 'Booking deleted']),
-            $this->client->getResponse()->getContent()
+            $this->client->getResponse()->getContent(),
+            'Должен возвращать сообщение об удалении брони'
         );
     }
 
-    public function testDeleteNonExistentBooking()
+    public function testDeleteNonExistentBooking(): void
     {
         $this->client->request(
             'DELETE',
@@ -165,19 +210,11 @@ class CottageApiScenarioTest extends WebTestCase
             ]
         );
 
-        $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+        $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'Должен возвращать статус 404');
         $this->assertJsonStringEqualsJsonString(
             json_encode(['error' => 'Booking not found']),
-            $this->client->getResponse()->getContent()
+            $this->client->getResponse()->getContent(),
+            'Должен возвращать ошибку о ненайденном бронировании'
         );
-    }
-
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-        $bookingsFile = Path::join($this->kernelDir, 'tests/resources/bookings_test.csv');
-        if (file_exists($bookingsFile)) {
-            file_put_contents($bookingsFile, "phone,cottage_id,comment\n");
-        }
     }
 }
