@@ -8,6 +8,10 @@ class CottageService
     public function __construct(string $dataFile)
     {
         $this->dataFile = $dataFile;
+        if (!file_exists($this->dataFile))
+        {
+            file_put_contents($this->dataFile, "id,title,amenities,beds,distanceToSea\n");
+        }
     }
 
     public function getAvailableCottages(): array

@@ -8,6 +8,10 @@ class BookingService
     public function __construct(string $bookingsFile)
     {
         $this->bookingsFile = $bookingsFile;
+        if (!file_exists($this->bookingsFile))
+        {
+            file_put_contents($this->bookingsFile, "phone,cottage_id,comment\n");
+        }
     }
 
     public function createBooking(string $phone, int $cottageId, string $comment = ''): void
