@@ -43,4 +43,35 @@ class CottageApiController extends AbstractController
             Response::HTTP_CREATED
         );
     }
+
+
+    #[Route('/api/bookings/edit/', methods: ['PUT'])]
+    public function updateComment(Request $request, BookingService $bookingService): Response
+    {
+        $phone = $request->request->get('phone', '');
+        $cottageId = $request->request->get('cottageId', 0);
+        $comment = $request->request->get('comment', '');
+
+        if ($bookingService->updateBookingComment($phone, $cottageId, $comment))
+        {
+            return $this->json(['status' => 'Comment updated']);
+        }
+
+        return $this->json(['error' => 'Booking not found'], 404);
+    }
+
+
+    #[Route('/api/bookings/delete/', methods: ['DELETE'])]
+    public function deleteBooking(BookingService $bookingService): Response
+    {
+        $phone = $request->request->get('phone', '');
+        $cottageId = $request->request->get('cottageId', 0);
+
+        if ($bookingService->deleteBooking($phone, $cottageId))
+        {
+            return $this->json(['status' => 'Booking deleted']);
+        }
+
+        return $this->json(['error' => 'Booking not found'], 404);
+    }
 }
