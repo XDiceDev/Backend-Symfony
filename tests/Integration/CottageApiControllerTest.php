@@ -15,14 +15,21 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * @coversNothing
  */
+/** @psalm-suppress UnusedClass */
 class CottageApiControllerTest extends WebTestCase
 {
     private $client;
     private EntityManagerInterface $entityManager;
 
+    /**
+     * @Override
+     */
     protected function setUp(): void
     {
         $this->client = static::createClient();
+        /**
+         * @var EntityManagerInterface
+         */
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
 
         $this->entityManager->createQuery('DELETE FROM App\Entity\Booking')->execute();
@@ -30,6 +37,9 @@ class CottageApiControllerTest extends WebTestCase
         $this->entityManager->flush();
     }
 
+    /**
+     * @Override
+     */
     protected function tearDown(): void
     {
         $this->entityManager->close();

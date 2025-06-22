@@ -13,6 +13,7 @@ class BookingService
 {
     private EntityManagerInterface $entityManager;
 
+    /** @psalm-suppress PossiblyUnusedMethod */
     public function __construct(EntityManagerInterface $entityManager)
     {
         $this->entityManager = $entityManager;

@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
+/** @psalm-suppress UnusedClass */
 class CottageApiController extends AbstractController
 {
     #[Route('/api/cottages', name: 'api_cottages', methods: ['GET'])]
@@ -53,8 +54,11 @@ class CottageApiController extends AbstractController
         $cottageId = $request->request->get('cottageId', 0);
         $comment = $request->request->get('comment', '');
 
-        if ($bookingService->updateBookingComment($phone, $cottageId, $comment)) {
-            return $this->json(['status' => 'Comment updated']);
+        if (is_string($phone) && is_scalar($cottageId) && is_string($comment)) {
+            $cottageId = (int)$cottageId;
+            if ($bookingService->updateBookingComment($phone, $cottageId, $comment)) {
+                return $this->json(['status' => 'Comment updated']);
+            }
         }
 
         return $this->json(['error' => 'Booking not found'], 404);
@@ -66,8 +70,11 @@ class CottageApiController extends AbstractController
         $phone = $request->request->get('phone', '');
         $cottageId = $request->request->get('cottageId', 0);
 
-        if ($bookingService->deleteBooking($phone, $cottageId)) {
+        if (is_string($phone) && is_scalar($cottageId)) {
+            $cottageId = (int)$cottageId;
+            if ($bookingService->deleteBooking($phone, $cottageId)) {
             return $this->json(['status' => 'Booking deleted']);
+            }
         }
 
         return $this->json(['error' => 'Booking not found'], 404);

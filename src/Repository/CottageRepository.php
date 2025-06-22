@@ -10,6 +10,10 @@ use Doctrine\Persistence\ManagerRegistry;
 
 class CottageRepository extends ServiceEntityRepository
 {
+    /**
+     * @psalm-suppress PossiblyUnusedMethod
+     * @psalm-suppress PossiblyUnusedParam
+     */
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Cottage::class);

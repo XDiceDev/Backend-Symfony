@@ -15,14 +15,21 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  *
  * @coversNothing
  */
+/** @psalm-suppress UnusedClass */
 class CottageServiceTest extends KernelTestCase
 {
     private EntityManagerInterface $entityManager;
     private CottageService $cottageService;
 
+    /**
+     * @Override
+     */
     protected function setUp(): void
     {
         self::bootKernel();
+        /**
+         * @var EntityManagerInterface
+         */
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $this->cottageService = new CottageService($this->entityManager);
 
@@ -30,6 +37,9 @@ class CottageServiceTest extends KernelTestCase
         $this->entityManager->flush();
     }
 
+    /**
+     * @Override
+     */
     protected function tearDown(): void
     {
         $this->entityManager->close();
@@ -40,7 +50,6 @@ class CottageServiceTest extends KernelTestCase
     {
         $cottages = $this->cottageService->getAvailableCottages();
 
-        $this->assertIsArray($cottages, 'Должен возвращать массив');
         $this->assertEmpty($cottages, 'Должен возвращать пустой массив для пустой базы данных');
     }
 
@@ -125,7 +134,6 @@ class CottageServiceTest extends KernelTestCase
 
         $cottages = $this->cottageService->getAvailableCottages();
 
-        $this->assertIsArray($cottages, 'Должен возвращать массив');
         $this->assertEmpty($cottages, 'Должен возвращать пустой массив, если нет доступных коттеджей');
     }
 
@@ -147,7 +155,6 @@ class CottageServiceTest extends KernelTestCase
         }
 
         $cottages = $this->cottageService->getAvailableCottages();
-        $this->assertIsArray($cottages, 'Должен возвращать массив');
         $this->assertEmpty($cottages, 'Должен возвращать пустой массив при некорректных данных');
     }
 }

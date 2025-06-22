@@ -17,6 +17,7 @@
         <ignoreFiles>
             <file name="config/preload.php" />
             <file name="public/index.php" />
+            <file name="tests/bootstrap.php" />
             <directory name="bin" />
             <directory name="var" />
             <directory name="vendor" />
@@ -27,5 +28,6 @@
         <LessSpecificReturnType errorLevel="info" />
         <PossiblyNullReference errorLevel="info" />
         <InvalidArgument errorLevel="info" />
+        <MissingOverrideAttribute errorLevel="suppress" />
     </issueHandlers>
 </psalm>

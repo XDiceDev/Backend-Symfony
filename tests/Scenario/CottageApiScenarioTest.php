@@ -15,14 +15,21 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * @coversNothing
  */
+/** @psalm-suppress UnusedClass */
 class CottageApiScenarioTest extends WebTestCase
 {
     private $client;
     private EntityManagerInterface $entityManager;
 
+    /**
+     * @Override
+     */
     protected function setUp(): void
     {
         $this->client = static::createClient();
+        /**
+         * @var EntityManagerInterface
+         */
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
 
         $this->entityManager->createQuery('DELETE FROM App\Entity\Booking')->execute();
@@ -30,6 +37,9 @@ class CottageApiScenarioTest extends WebTestCase
         $this->entityManager->flush();
     }
 
+    /**
+     * @Override
+     */
     protected function tearDown(): void
     {
         $this->entityManager->close();
@@ -64,6 +74,11 @@ class CottageApiScenarioTest extends WebTestCase
 
         $responseData = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertCount(2, $responseData, 'Должен возвращать два коттеджа');
+        /**
+         * @var array<int, array{name: string}> $responseData
+         */
+        $this->assertTrue(isset($responseData[0]['name']), 'Первый коттедж должен существовать');
+        $this->assertTrue(isset($responseData[1]['name']), 'Второй коттедж должен существовать');
         $this->assertEquals('Beach House', $responseData[0]['name'], 'Первый коттедж должен быть Beach House');
         $this->assertEquals('Mountain Cabin', $responseData[1]['name'], 'Второй коттедж должен быть Mountain Cabin');
     }

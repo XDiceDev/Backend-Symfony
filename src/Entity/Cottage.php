@@ -94,6 +94,7 @@ class Cottage
         return $this;
     }
 
+    /** @psalm-suppress PossiblyUnusedMethod */
     public function isAvailable(): bool
     {
         return $this->isAvailable;
@@ -109,11 +110,13 @@ class Cottage
     /**
      * @return Collection<int, Booking>
      */
+    /** @psalm-suppress PossiblyUnusedMethod */
     public function getBookings(): Collection
     {
         return $this->bookings;
     }
 
+    /** @psalm-suppress PossiblyUnusedMethod */
     public function addBooking(Booking $booking): self
     {
         if (!$this->bookings->contains($booking)) {
@@ -124,6 +127,7 @@ class Cottage
         return $this;
     }
 
+    /** @psalm-suppress PossiblyUnusedMethod */
     public function removeBooking(Booking $booking): self
     {
         if ($this->bookings->removeElement($booking)) {

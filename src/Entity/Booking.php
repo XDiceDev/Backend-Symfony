@@ -26,11 +26,13 @@ class Booking
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $comment = null;
 
+    /** @psalm-suppress PossiblyUnusedMethod */
     public function getId(): ?int
     {
         return $this->id;
     }
 
+    /** @psalm-suppress PossiblyUnusedMethod */
     public function getPhone(): string
     {
         return $this->phone;
@@ -55,6 +57,7 @@ class Booking
         return $this;
     }
 
+    /** @psalm-suppress PossiblyUnusedMethod */
     public function getComment(): ?string
     {
         return $this->comment;
