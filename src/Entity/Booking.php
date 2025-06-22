@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Entity;
 
-use Doctrine\ORM\Mapping as ORM;
 use App\Repository\BookingRepository;
+use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: BookingRepository::class)]
 #[ORM\Table(name: 'booking')]
@@ -37,6 +39,7 @@ class Booking
     public function setPhone(string $phone): self
     {
         $this->phone = $phone;
+
         return $this;
     }
 
@@ -48,6 +51,7 @@ class Booking
     public function setCottage(Cottage $cottage): self
     {
         $this->cottage = $cottage;
+
         return $this;
     }
 
@@ -59,6 +63,7 @@ class Booking
     public function setComment(?string $comment): self
     {
         $this->comment = $comment;
+
         return $this;
     }
 }

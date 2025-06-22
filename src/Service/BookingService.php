@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Service;
 
 use App\Entity\Booking;
 use App\Entity\Cottage;
 use Doctrine\ORM\EntityManagerInterface;
+use InvalidArgumentException;
 
 class BookingService
 {
@@ -19,13 +22,14 @@ class BookingService
     {
         $cottage = $this->entityManager->getRepository(Cottage::class)->find($cottageId);
         if (!$cottage) {
-            throw new \InvalidArgumentException('Cottage not found');
+            throw new InvalidArgumentException('Cottage not found');
         }
 
         $booking = new Booking();
         $booking->setPhone($phone)
-                ->setComment($comment)
-                ->setCottage($cottage);
+            ->setComment($comment)
+            ->setCottage($cottage)
+        ;
 
         $this->entityManager->persist($booking);
         $this->entityManager->flush();
@@ -34,7 +38,8 @@ class BookingService
     public function updateBookingComment(string $phone, int $cottageId, string $newComment): bool
     {
         $booking = $this->entityManager->getRepository(Booking::class)
-            ->findOneBy(['phone' => $phone, 'cottage' => $cottageId]);
+            ->findOneBy(['phone' => $phone, 'cottage' => $cottageId])
+        ;
 
         if (!$booking) {
             return false;
@@ -49,7 +54,8 @@ class BookingService
     public function deleteBooking(string $phone, int $cottageId): bool
     {
         $booking = $this->entityManager->getRepository(Booking::class)
-            ->findOneBy(['phone' => $phone, 'cottage' => $cottageId]);
+            ->findOneBy(['phone' => $phone, 'cottage' => $cottageId])
+        ;
 
         if (!$booking) {
             return false;

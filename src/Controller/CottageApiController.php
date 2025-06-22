@@ -1,13 +1,16 @@
 <?php
+
+declare(strict_types=1);
+
 namespace App\Controller;
 
+use App\Service\BookingService;
 use App\Service\CottageService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\Service\BookingService;
+use Symfony\Component\Routing\Annotation\Route;
 
 class CottageApiController extends AbstractController
 {
@@ -15,17 +18,16 @@ class CottageApiController extends AbstractController
     public function getCottages(CottageService $cottageService): JsonResponse
     {
         $cottages = $cottageService->getAvailableCottages();
+
         return $this->json($cottages);
     }
-
 
     #[Route('/api/bookings', name: 'api_bookings_create', methods: ['POST'])]
     public function createBooking(Request $request, BookingService $bookingService): Response
     {
         $data = json_decode($request->getContent(), true);
-        
-        if (empty($data['phone']) || empty($data['cottageId']))
-        {
+
+        if (empty($data['phone']) || empty($data['cottageId'])) {
             return $this->json(
                 ['error' => 'Phone and cottageId are required'],
                 Response::HTTP_BAD_REQUEST
@@ -33,9 +35,9 @@ class CottageApiController extends AbstractController
         }
 
         $bookingService->createBooking(
-            (string)$data['phone'],
-            (int)$data['cottageId'],
-            (string)($data['comment'] ?? '')
+            (string) $data['phone'],
+            (int) $data['cottageId'],
+            (string) ($data['comment'] ?? '')
         );
 
         return $this->json(
@@ -44,7 +46,6 @@ class CottageApiController extends AbstractController
         );
     }
 
-
     #[Route('/api/bookings/edit/', methods: ['PUT'])]
     public function updateComment(Request $request, BookingService $bookingService): Response
     {
@@ -52,14 +53,12 @@ class CottageApiController extends AbstractController
         $cottageId = $request->request->get('cottageId', 0);
         $comment = $request->request->get('comment', '');
 
-        if ($bookingService->updateBookingComment($phone, $cottageId, $comment))
-        {
+        if ($bookingService->updateBookingComment($phone, $cottageId, $comment)) {
             return $this->json(['status' => 'Comment updated']);
         }
 
         return $this->json(['error' => 'Booking not found'], 404);
     }
-
 
     #[Route('/api/bookings/delete/', methods: ['DELETE'])]
     public function deleteBooking(Request $request, BookingService $bookingService): Response
@@ -67,8 +66,7 @@ class CottageApiController extends AbstractController
         $phone = $request->request->get('phone', '');
         $cottageId = $request->request->get('cottageId', 0);
 
-        if ($bookingService->deleteBooking($phone, $cottageId))
-        {
+        if ($bookingService->deleteBooking($phone, $cottageId)) {
             return $this->json(['status' => 'Booking deleted']);
         }
 

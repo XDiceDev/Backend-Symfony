@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tests\Controller;
 
 use App\Entity\Booking;
@@ -8,6 +10,11 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * @internal
+ *
+ * @coversNothing
+ */
 class CottageApiScenarioTest extends WebTestCase
 {
     private $client;
@@ -36,13 +43,15 @@ class CottageApiScenarioTest extends WebTestCase
             ->setAmenities('WiFi|Pool')
             ->setBedCount(4)
             ->setRowFromSea(100)
-            ->setIsAvailable(true);
+            ->setIsAvailable(true)
+        ;
         $cottage2 = (new Cottage())
             ->setName('Mountain Cabin')
             ->setAmenities('Fireplace')
             ->setBedCount(2)
             ->setRowFromSea(1000)
-            ->setIsAvailable(true);
+            ->setIsAvailable(true)
+        ;
 
         $this->entityManager->persist($cottage1);
         $this->entityManager->persist($cottage2);
@@ -66,7 +75,8 @@ class CottageApiScenarioTest extends WebTestCase
             ->setAmenities('WiFi|Pool')
             ->setBedCount(4)
             ->setRowFromSea(100)
-            ->setIsAvailable(true);
+            ->setIsAvailable(true)
+        ;
         $this->entityManager->persist($cottage);
         $this->entityManager->flush();
 
@@ -79,7 +89,7 @@ class CottageApiScenarioTest extends WebTestCase
             json_encode([
                 'phone' => '+1234567890',
                 'cottageId' => $cottage->getId(),
-                'comment' => 'Test booking'
+                'comment' => 'Test booking',
             ])
         );
 
@@ -117,13 +127,15 @@ class CottageApiScenarioTest extends WebTestCase
             ->setAmenities('WiFi|Pool')
             ->setBedCount(4)
             ->setRowFromSea(100)
-            ->setIsAvailable(true);
+            ->setIsAvailable(true)
+        ;
         $this->entityManager->persist($cottage);
 
         $booking = (new Booking())
             ->setPhone('+1234567890')
             ->setCottage($cottage)
-            ->setComment('Initial comment');
+            ->setComment('Initial comment')
+        ;
         $this->entityManager->persist($booking);
         $this->entityManager->flush();
 
@@ -133,7 +145,7 @@ class CottageApiScenarioTest extends WebTestCase
             [
                 'phone' => '+1234567890',
                 'cottageId' => $cottage->getId(),
-                'comment' => 'Updated comment'
+                'comment' => 'Updated comment',
             ]
         );
 
@@ -153,7 +165,7 @@ class CottageApiScenarioTest extends WebTestCase
             [
                 'phone' => '+9999999999',
                 'cottageId' => 999,
-                'comment' => 'Test comment'
+                'comment' => 'Test comment',
             ]
         );
 
@@ -172,13 +184,15 @@ class CottageApiScenarioTest extends WebTestCase
             ->setAmenities('WiFi|Pool')
             ->setBedCount(4)
             ->setRowFromSea(100)
-            ->setIsAvailable(true);
+            ->setIsAvailable(true)
+        ;
         $this->entityManager->persist($cottage);
 
         $booking = (new Booking())
             ->setPhone('+1234567890')
             ->setCottage($cottage)
-            ->setComment('Test booking');
+            ->setComment('Test booking')
+        ;
         $this->entityManager->persist($booking);
         $this->entityManager->flush();
 
@@ -187,7 +201,7 @@ class CottageApiScenarioTest extends WebTestCase
             '/api/bookings/delete/',
             [
                 'phone' => '+1234567890',
-                'cottageId' => $cottage->getId()
+                'cottageId' => $cottage->getId(),
             ]
         );
 
@@ -206,7 +220,7 @@ class CottageApiScenarioTest extends WebTestCase
             '/api/bookings/delete/',
             [
                 'phone' => '+9999999999',
-                'cottageId' => 999
+                'cottageId' => 999,
             ]
         );
 

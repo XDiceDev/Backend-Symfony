@@ -21,12 +21,12 @@ return (new Config())
         'no_trailing_whitespace' => true,
         'line_ending' => true,
         'single_quote' => true,
-        'phpdoc_ignore_psalm_tags' => true,
-        'strict_types_declarations' => true,
+        'declare_strict_types' => true,
         'global_namespace_import' => [
             'import_classes' => true,
             'import_functions' => true,
         ],
+        'phpdoc_no_package' => true,
     ])
     ->setLineEnding("\n")
     ->setFinder($finder)

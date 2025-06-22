@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Service;
 
 use App\Entity\Cottage;
@@ -17,7 +19,8 @@ class CottageService
     public function getAvailableCottages(): array
     {
         $cottages = $this->entityManager->getRepository(Cottage::class)
-            ->findBy(['isAvailable' => true]);
+            ->findBy(['isAvailable' => true])
+        ;
 
         return array_map(function (Cottage $cottage) {
             return [
@@ -25,7 +28,7 @@ class CottageService
                 'name' => $cottage->getName(),
                 'amenities' => $cottage->getAmenities(),
                 'bedCount' => $cottage->getBedCount(),
-                'rowFromSea' => $cottage->getRowFromSea()
+                'rowFromSea' => $cottage->getRowFromSea(),
             ];
         }, $cottages);
     }
