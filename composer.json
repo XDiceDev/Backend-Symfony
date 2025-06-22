@@ -27,7 +27,8 @@
         "symfony/browser-kit": "6.4.*",
         "symfony/css-selector": "6.4.*",
         "symfony/maker-bundle": "^1.63",
-        "symfony/phpunit-bridge": "^7.3"
+        "symfony/phpunit-bridge": "^7.3",
+        "vimeo/psalm": "^6.12"
     },
     "config": {
         "allow-plugins": {
