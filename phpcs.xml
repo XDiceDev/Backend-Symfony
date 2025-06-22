@@ -1,4 +1,3 @@
-```xml
 <?xml version="1.0"?>
 <ruleset name="Symfony Project Standards">
     <description>PSR-12</description>
@@ -19,24 +18,13 @@
         </properties>
     </rule>
 
-    <rule ref="Squiz.ControlStructures.ControlStructureSpacing">
-        <properties>
-            <property name="maxNestedLevel" value="3"/>
-        </properties>
-    </rule>
     <rule ref="Generic.Metrics.NestingLevel">
         <properties>
             <property name="nestingLevel" value="3"/>
         </properties>
     </rule>
 
-    <rule ref="Squiz.Functions.FunctionDeclarationArgumentSpacing">
-        <properties>
-            <property name="spacingAfterComma" value="1"/>
-        </properties>
-    </rule>
-
-    <rule ref="PSR12.Functions.FunctionCallSpacing.SpaceBeforeCloseBracket">
+    <rule ref="Generic.Functions.FunctionCallArgumentSpacing.SpaceBeforeCloseBracket">
         <severity>0</severity>
     </rule>
 </ruleset>
