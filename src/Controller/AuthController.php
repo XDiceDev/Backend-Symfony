@@ -89,4 +89,46 @@ class AuthController extends AbstractController
 
         return $this->render('auth/register.html.twig', []);
     }
+
+    #[Route('/change-password', name: 'app_change_password', methods: ['GET', 'POST'])]
+    public function changePassword(Request $request, EntityManagerInterface $entityManager, UserPasswordHasherInterface $passwordHasher): Response
+    {
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            return $this->redirectToRoute('app_login');
+        }
+
+        if ($request->isMethod('POST')) {
+            $currentPassword = $request->request->get('current_password');
+            $newPassword = $request->request->get('new_password');
+            $newPasswordConfirm = $request->request->get('new_password_confirm');
+
+            if (!$passwordHasher->isPasswordValid($user, $currentPassword)) {
+                $this->addFlash('error', 'Текущий пароль неверный.');
+                return $this->redirectToRoute('app_change_password');
+            }
+
+            if (strlen($newPassword) < 6) {
+                $this->addFlash('error', 'Новый пароль должен содержать минимум 6 символов.');
+                return $this->redirectToRoute('app_change_password');
+            }
+
+            if ($newPassword !== $newPasswordConfirm) {
+                $this->addFlash('error', 'Новые пароли не совпадают.');
+                return $this->redirectToRoute('app_change_password');
+            }
+
+            $hashedPassword = $passwordHasher->hashPassword($user, $newPassword);
+            $user->setPassword($hashedPassword);
+
+            $entityManager->persist($user);
+            $entityManager->flush();
+
+            $this->addFlash('success', 'Пароль успешно изменён!');
+
+            return $this->redirectToRoute('app_home');
+        }
+
+        return $this->render('auth/change_password.html.twig', []);
+    }
 }
