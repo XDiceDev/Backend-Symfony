@@ -19,34 +19,64 @@ class BookingService
         $this->entityManager = $entityManager;
     }
 
-    public function createBooking(string $phone, int $cottageId, string $comment = ''): void
+    public function getBookings(?string $phone = null, ?int $cottageId = null): array
+    {
+        $qb = $this->entityManager->getRepository(Booking::class)->createQueryBuilder('b');
+
+        if ($phone !== null) {
+            $qb->andWhere('b.phone = :phone')->setParameter('phone', $phone);
+        }
+
+        if ($cottageId !== null) {
+            $qb->andWhere('b.cottage = :cottage')->setParameter('cottage', $this->entityManager->getReference(Cottage::class, $cottageId));
+        }
+
+        $bookings = $qb->getQuery()->getResult();
+
+        return array_map(
+            fn(Booking $booking) => [
+                'id' => $booking->getId(),
+                'phone' => $booking->getPhone(),
+                'cottageId' => $booking->getCottage()->getId(),
+                'comment' => $booking->getComment(),
+            ],
+            $bookings
+        );
+    }
+
+    public function createBooking(string $phone, int $cottageId, string $comment): void
     {
         $cottage = $this->entityManager->getRepository(Cottage::class)->find($cottageId);
         if (!$cottage) {
-            throw new InvalidArgumentException('Cottage not found');
+            throw new \Exception('Cottage not found');
         }
 
         $booking = new Booking();
-        $booking->setPhone($phone)
-            ->setComment($comment)
-            ->setCottage($cottage)
-        ;
+        $booking->setPhone($phone);
+        $booking->setCottage($cottage);
+        $booking->setComment($comment);
 
         $this->entityManager->persist($booking);
         $this->entityManager->flush();
     }
 
-    public function updateBookingComment(string $phone, int $cottageId, string $newComment): bool
+    public function updateBookingComment(string $phone, int $cottageId, string $comment): bool
     {
-        $booking = $this->entityManager->getRepository(Booking::class)
-            ->findOneBy(['phone' => $phone, 'cottage' => $cottageId])
-        ;
+        $cottage = $this->entityManager->getRepository(Cottage::class)->find($cottageId);
+        if (!$cottage) {
+            return false;
+        }
+
+        $booking = $this->entityManager->getRepository(Booking::class)->findOneBy([
+            'phone' => $phone,
+            'cottage' => $cottage,
+        ]);
 
         if (!$booking) {
             return false;
         }
 
-        $booking->setComment($newComment);
+        $booking->setComment($comment);
         $this->entityManager->flush();
 
         return true;
@@ -54,9 +84,15 @@ class BookingService
 
     public function deleteBooking(string $phone, int $cottageId): bool
     {
-        $booking = $this->entityManager->getRepository(Booking::class)
-            ->findOneBy(['phone' => $phone, 'cottage' => $cottageId])
-        ;
+        $cottage = $this->entityManager->getRepository(Cottage::class)->find($cottageId);
+        if (!$cottage) {
+            return false;
+        }
+
+        $booking = $this->entityManager->getRepository(Booking::class)->findOneBy([
+            'phone' => $phone,
+            'cottage' => $cottage,
+        ]);
 
         if (!$booking) {
             return false;

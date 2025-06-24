@@ -4,18 +4,28 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\Cottage;
 use App\Service\BookingService;
 use App\Service\CottageService;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use OpenApi\Attributes as OA;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-/** @psalm-suppress UnusedClass */
+#[OA\Tag(name: 'api/cottages')]
 class CottageApiController extends AbstractController
 {
+    private EntityManagerInterface $entityManager;
+
+    public function __construct(EntityManagerInterface $entityManager)
+    {
+        $this->entityManager = $entityManager;
+    }
+
     #[Route('/api/cottages', name: 'api_cottages', methods: ['GET'])]
     #[OA\Get(
         path: '/api/cottages',
@@ -35,8 +45,8 @@ class CottageApiController extends AbstractController
                                 type: 'object',
                                 properties: [
                                     new OA\Property(property: 'id', type: 'integer', example: 1),
-                                    new OA\Property(property: 'name', type: 'string', example: 'Cottage'),
-                                    new OA\Property(property: 'description', type: 'string', example: 'A cottage by the lake'),
+                                    new OA\Property(property: 'name', type: 'string', example: 'Cozy Cottage'),
+                                    new OA\Property(property: 'description', type: 'string', example: 'A cozy cottage by the lake'),
                                     new OA\Property(property: 'pricePerNight', type: 'number', format: 'float', example: 100.00),
                                     new OA\Property(property: 'address', type: 'string', example: '123 Lake Street'),
                                 ]
@@ -54,10 +64,10 @@ class CottageApiController extends AbstractController
         return $this->json($cottages);
     }
 
-    #[Route('/api/cottages/create', name: 'api_cottages_create', methods: ['POST'])]
+    #[Route('/api/cottages', name: 'api_cottages_create', methods: ['POST'])]
     #[IsGranted('ROLE_ADMIN')]
     #[OA\Post(
-        path: '/api/cottages/create',
+        path: '/api/cottages',
         operationId: 'createCottage',
         summary: 'Create a new cottage',
         tags: ['api/cottages'],
@@ -476,9 +486,9 @@ class CottageApiController extends AbstractController
         return $this->json($bookings);
     }
 
-    #[Route('/api/bookings/create', name: 'api_bookings_create', methods: ['POST'])]
+    #[Route('/api/bookings', name: 'api_bookings_create', methods: ['POST'])]
     #[OA\Post(
-        path: '/api/bookings/create',
+        path: '/api/bookings',
         operationId: 'createBooking',
         summary: 'Create a new booking',
         tags: ['api/bookings'],
@@ -533,6 +543,21 @@ class CottageApiController extends AbstractController
                 ]
             ),
             new OA\Response(
+                response: 404,
+                description: 'Cottage not found',
+                content: [
+                    new OA\MediaType(
+                        mediaType: 'application/json',
+                        schema: new OA\Schema(
+                            type: 'object',
+                            properties: [
+                                new OA\Property(property: 'error', type: 'string', example: 'Cottage not found'),
+                            ]
+                        )
+                    ),
+                ]
+            ),
+            new OA\Response(
                 response: 401,
                 description: 'Unauthorized',
                 content: [
@@ -560,19 +585,27 @@ class CottageApiController extends AbstractController
             );
         }
 
-        $bookingService->createBooking(
-            (string) $data['phone'],
-            (int) $data['cottageId'],
-            (string) ($data['comment'] ?? '')
-        );
+        try {
+            $cottage = $this->entityManager->getRepository(Cottage::class)->find((int) $data['cottageId']);
+            if (!$cottage) {
+                return $this->json(['error' => 'Cottage not found'], Response::HTTP_NOT_FOUND);
+            }
+            $bookingService->createBooking(
+                (string) $data['phone'],
+                (int) $data['cottageId'],
+                (string) ($data['comment'] ?? '')
+            );
 
-        return $this->json(
-            ['status' => 'Booking created successfully'],
-            Response::HTTP_CREATED
-        );
+            return $this->json(
+                ['status' => 'Booking created successfully'],
+                Response::HTTP_CREATED
+            );
+        } catch (\Exception $e) {
+            return $this->json(['error' => 'Failed to create booking: ' . $e->getMessage()], Response::HTTP_BAD_REQUEST);
+        }
     }
 
-    #[Route('/api/bookings/edit', methods: ['PUT'])]
+    #[Route('/api/bookings/edit', name: 'api_bookings_update', methods: ['PUT'])]
     #[OA\Put(
         path: '/api/bookings/edit',
         operationId: 'updateBookingComment',
@@ -662,21 +695,35 @@ class CottageApiController extends AbstractController
     )]
     public function updateComment(Request $request, BookingService $bookingService): Response
     {
-        $phone = $request->request->get('phone', '');
-        $cottageId = $request->request->get('cottageId', 0);
-        $comment = $request->request->get('comment', '');
+        $data = json_decode($request->getContent(), true);
 
-        if (is_string($phone) && is_scalar($cottageId) && is_string($comment)) {
-            $cottageId = (int)$cottageId;
-            if ($bookingService->updateBookingComment($phone, $cottageId, $comment)) {
-                return $this->json(['status' => 'Comment updated']);
-            }
+        if (empty($data['phone']) || empty($data['cottageId']) || !isset($data['comment'])) {
+            return $this->json(
+                ['error' => 'Phone, cottageId, and comment are required'],
+                Response::HTTP_BAD_REQUEST
+            );
         }
 
-        return $this->json(['error' => 'Booking not found'], 404);
+        try {
+            $cottage = $this->entityManager->getRepository(Cottage::class)->find((int) $data['cottageId']);
+            if (!$cottage) {
+                return $this->json(['error' => 'Cottage not found'], Response::HTTP_NOT_FOUND);
+            }
+            if ($bookingService->updateBookingComment(
+                (string) $data['phone'],
+                (int) $data['cottageId'],
+                (string) $data['comment']
+            )) {
+                return $this->json(['status' => 'Comment updated']);
+            }
+        } catch (\Exception $e) {
+            return $this->json(['error' => 'Failed to update booking: ' . $e->getMessage()], Response::HTTP_BAD_REQUEST);
+        }
+
+        return $this->json(['error' => 'Booking not found'], Response::HTTP_NOT_FOUND);
     }
 
-    #[Route('/api/bookings/delete', methods: ['DELETE'])]
+    #[Route('/api/bookings/delete', name: 'api_bookings_delete', methods: ['DELETE'])]
     #[OA\Delete(
         path: '/api/bookings/delete',
         operationId: 'deleteBooking',
@@ -765,16 +812,30 @@ class CottageApiController extends AbstractController
     )]
     public function deleteBooking(Request $request, BookingService $bookingService): Response
     {
-        $phone = $request->request->get('phone', '');
-        $cottageId = $request->request->get('cottageId', 0);
+        $data = json_decode($request->getContent(), true);
 
-        if (is_string($phone) && is_scalar($cottageId)) {
-            $cottageId = (int)$cottageId;
-            if ($bookingService->deleteBooking($phone, $cottageId)) {
-            return $this->json(['status' => 'Booking deleted']);
-            }
+        if (empty($data['phone']) || empty($data['cottageId'])) {
+            return $this->json(
+                ['error' => 'Phone and cottageId are required'],
+                Response::HTTP_BAD_REQUEST
+            );
         }
 
-        return $this->json(['error' => 'Booking not found'], 404);
+        try {
+            $cottage = $this->entityManager->getRepository(Cottage::class)->find((int) $data['cottageId']);
+            if (!$cottage) {
+                return $this->json(['error' => 'Cottage not found'], Response::HTTP_NOT_FOUND);
+            }
+            if ($bookingService->deleteBooking(
+                (string) $data['phone'],
+                (int) $data['cottageId']
+            )) {
+                return $this->json(['status' => 'Booking deleted']);
+            }
+        } catch (\Exception $e) {
+            return $this->json(['error' => 'Failed to delete booking: ' . $e->getMessage()], Response::HTTP_BAD_REQUEST);
+        }
+
+        return $this->json(['error' => 'Booking not found'], Response::HTTP_NOT_FOUND);
     }
 }
