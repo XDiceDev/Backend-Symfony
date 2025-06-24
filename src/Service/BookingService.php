@@ -18,7 +18,7 @@ class BookingService
     public function createBooking(string $phone, int $cottageId, string $comment = ''): void
     {
         $cottage = $this->entityManager->getRepository(Cottage::class)->find($cottageId);
-        if (!$cottage) {
+        if ($cottage === null) {
             throw new \InvalidArgumentException('Cottage not found');
         }
 
@@ -36,7 +36,7 @@ class BookingService
         $booking = $this->entityManager->getRepository(Booking::class)
             ->findOneBy(['phone' => $phone, 'cottage' => $cottageId]);
 
-        if (!$booking) {
+        if ($booking === null) {
             return false;
         }
 
@@ -51,7 +51,7 @@ class BookingService
         $booking = $this->entityManager->getRepository(Booking::class)
             ->findOneBy(['phone' => $phone, 'cottage' => $cottageId]);
 
-        if (!$booking) {
+        if ($booking === null) {
             return false;
         }
 
