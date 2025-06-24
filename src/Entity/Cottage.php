@@ -8,6 +8,7 @@ use App\Repository\CottageRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use App\Entity\Amenity;
 
 #[ORM\Entity(repositoryClass: CottageRepository::class)]
 #[ORM\Table(name: 'cottage')]
@@ -24,8 +25,8 @@ class Cottage
     #[ORM\Column(type: 'integer')]
     private int $bedCount;
 
-    #[ORM\Column(type: 'string', length: 255)]
-    private string $amenities;
+    #[ORM\ManyToMany(targetEntity: Amenity::class, inversedBy: 'cottages')]
+    private Collection $amenities;
 
     #[ORM\Column(type: 'integer')]
     private int $rowFromSea;
@@ -39,6 +40,7 @@ class Cottage
     public function __construct()
     {
         $this->bookings = new ArrayCollection();
+        $this->amenities = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -66,18 +68,6 @@ class Cottage
     public function setBedCount(int $bedCount): self
     {
         $this->bedCount = $bedCount;
-
-        return $this;
-    }
-
-    public function getAmenities(): string
-    {
-        return $this->amenities;
-    }
-
-    public function setAmenities(string $amenities): self
-    {
-        $this->amenities = $amenities;
 
         return $this;
     }
@@ -137,5 +127,25 @@ class Cottage
         }
 
         return $this;
+    }
+
+    public function getItems(): Collection
+    {
+        return $this->amenities;
+    }
+
+    public function addItem(Amenity $item): void
+    {
+        if (!$this->items->contains($item)) {
+            $this->items->add($item);
+            $item->addCottage($this);
+        }
+    }
+
+    public function removeItem(Amenity $item): void
+    {
+        if ($this->items->removeElement($item)) {
+            $item->removeCottage($this);
+        }
     }
 }
