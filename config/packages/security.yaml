@@ -24,8 +24,8 @@ security:
                 username_parameter: email
                 password_parameter: password
             logout:
-                path: app_logout
-                target: app_home
+                path: sonata_user_admin_security_logout
+                target: app_login
             entry_point: form_login
 
             # activate different ways to authenticate
