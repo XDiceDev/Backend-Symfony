@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Главная{% endblock %}
+
+{% block body %}
+    <h1>Главная страница</h1>
+    <p>Добро пожаловать, {{ app.user ? app.user.email : 'Гость' }}!</p>
+    {% if app.user %}
+        <a href="{{ path('app_logout') }}">Выйти</a>
+    {% else %}
+        <a href="{{ path('app_login') }}">Войти</a>
+    {% endif %}
+{% endblock %}
