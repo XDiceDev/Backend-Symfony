@@ -1,0 +1,30 @@
+sonata_admin:
+    title: Sonata Admin
+    dashboard:
+        groups:
+            content:
+                label: Контент
+                items:
+                    - app.admin.cottage
+                    - app.admin.amenity
+            bookings:
+                label: Заявки
+                items:
+                    - app.admin.booking
+            contacts:
+                label: Контакты
+                items:
+                    - app.admin.client_contact
+            users:
+                label: Пользователи
+                items:
+                    - app.admin.user
+        blocks:
+            - { type: sonata.admin.block.admin_list, position: left }
+
+sonata_block:
+    blocks:
+        sonata.admin.block.admin_list:
+            contexts: ['admin']
+        sonata.block.service.text:
+        sonata.block.service.rss:
