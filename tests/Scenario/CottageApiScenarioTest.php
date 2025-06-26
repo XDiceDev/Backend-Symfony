@@ -10,12 +10,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * @internal
- *
- * @coversNothing
- */
-/** @psalm-suppress UnusedClass */
 class CottageApiScenarioTest extends WebTestCase
 {
     private $client;

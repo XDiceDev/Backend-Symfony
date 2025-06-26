@@ -10,12 +10,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Exception;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-/**
- * @internal
- *
- * @coversNothing
- */
-/** @psalm-suppress UnusedClass */
 class CottageServiceTest extends KernelTestCase
 {
     private EntityManagerInterface $entityManager;

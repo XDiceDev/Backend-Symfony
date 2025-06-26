@@ -10,12 +10,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * @internal
- *
- * @coversNothing
- */
-/** @psalm-suppress UnusedClass */
 class CottageApiControllerTest extends WebTestCase
 {
     private $client;
@@ -53,21 +47,18 @@ class CottageApiControllerTest extends WebTestCase
             ->setAmenities('WiFi|Pool')
             ->setBedCount(4)
             ->setRowFromSea(100)
-            ->setIsAvailable(true)
         ;
         $cottage2 = (new Cottage())
             ->setName('Mountain Cabin')
             ->setAmenities('Fireplace')
             ->setBedCount(2)
             ->setRowFromSea(1000)
-            ->setIsAvailable(true)
         ;
         $cottage3 = (new Cottage())
             ->setName('City Apartment')
             ->setAmenities('Kitchen')
             ->setBedCount(3)
             ->setRowFromSea(500)
-            ->setIsAvailable(false)
         ;
 
         $this->entityManager->persist($cottage1);
@@ -106,7 +97,6 @@ class CottageApiControllerTest extends WebTestCase
             ->setAmenities('WiFi|Pool')
             ->setBedCount(4)
             ->setRowFromSea(100)
-            ->setIsAvailable(true)
         ;
         $this->entityManager->persist($cottage);
         $this->entityManager->flush();
@@ -162,7 +152,6 @@ class CottageApiControllerTest extends WebTestCase
             ->setAmenities('WiFi|Pool')
             ->setBedCount(4)
             ->setRowFromSea(100)
-            ->setIsAvailable(true)
         ;
         $this->entityManager->persist($cottage);
 
@@ -198,7 +187,6 @@ class CottageApiControllerTest extends WebTestCase
             ->setAmenities('WiFi|Pool')
             ->setBedCount(4)
             ->setRowFromSea(100)
-            ->setIsAvailable(true)
         ;
         $this->entityManager->persist($cottage);
         $this->entityManager->flush();
@@ -227,7 +215,6 @@ class CottageApiControllerTest extends WebTestCase
             ->setAmenities('WiFi|Pool')
             ->setBedCount(4)
             ->setRowFromSea(100)
-            ->setIsAvailable(true)
         ;
         $this->entityManager->persist($cottage);
 
@@ -262,7 +249,6 @@ class CottageApiControllerTest extends WebTestCase
             ->setAmenities('WiFi|Pool')
             ->setBedCount(4)
             ->setRowFromSea(100)
-            ->setIsAvailable(true)
         ;
         $this->entityManager->persist($cottage);
         $this->entityManager->flush();
