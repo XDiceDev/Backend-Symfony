@@ -21,9 +21,6 @@ sonata_admin:
                     - app.admin.user
         blocks:
             - { type: sonata.admin.block.admin_list, position: left }
-    security:
-        handler: sonata.admin.security.handler.role
-        role_admin: ROLE_ADMIN
 
 sonata_block:
     blocks:
