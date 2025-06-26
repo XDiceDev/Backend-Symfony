@@ -15,9 +15,12 @@ services:
       dockerfile: docker/php/Dockerfile
     volumes:
       - ./:/var/www/html:cached
+    depends_on:
+      - database
 
   database:
     image: mysql:8.0
+    container_name: database
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
