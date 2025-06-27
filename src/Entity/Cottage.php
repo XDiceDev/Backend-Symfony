@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Entity;
 
+use App\Repository\CottageRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use App\Repository\CottageRepository;
 
 #[ORM\Entity(repositoryClass: CottageRepository::class)]
 #[ORM\Table(name: 'cottage')]
@@ -52,6 +54,7 @@ class Cottage
     public function setName(string $name): self
     {
         $this->name = $name;
+
         return $this;
     }
 
@@ -63,6 +66,7 @@ class Cottage
     public function setBedCount(int $bedCount): self
     {
         $this->bedCount = $bedCount;
+
         return $this;
     }
 
@@ -74,6 +78,7 @@ class Cottage
     public function setAmenities(string $amenities): self
     {
         $this->amenities = $amenities;
+
         return $this;
     }
 
@@ -85,9 +90,11 @@ class Cottage
     public function setRowFromSea(int $rowFromSea): self
     {
         $this->rowFromSea = $rowFromSea;
+
         return $this;
     }
 
+    /** @psalm-suppress PossiblyUnusedMethod */
     public function isAvailable(): bool
     {
         return $this->isAvailable;
@@ -96,17 +103,20 @@ class Cottage
     public function setIsAvailable(bool $isAvailable): self
     {
         $this->isAvailable = $isAvailable;
+
         return $this;
     }
 
     /**
      * @return Collection<int, Booking>
      */
+    /** @psalm-suppress PossiblyUnusedMethod */
     public function getBookings(): Collection
     {
         return $this->bookings;
     }
 
+    /** @psalm-suppress PossiblyUnusedMethod */
     public function addBooking(Booking $booking): self
     {
         if (!$this->bookings->contains($booking)) {
@@ -117,6 +127,7 @@ class Cottage
         return $this;
     }
 
+    /** @psalm-suppress PossiblyUnusedMethod */
     public function removeBooking(Booking $booking): self
     {
         if ($this->bookings->removeElement($booking)) {

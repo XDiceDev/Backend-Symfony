@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tests\Controller;
 
 use App\Entity\Booking;
@@ -13,9 +15,15 @@ class CottageApiScenarioTest extends WebTestCase
     private $client;
     private EntityManagerInterface $entityManager;
 
+    /**
+     * @Override
+     */
     protected function setUp(): void
     {
         $this->client = static::createClient();
+        /**
+         * @var EntityManagerInterface
+         */
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
 
         $this->entityManager->createQuery('DELETE FROM App\Entity\Booking')->execute();
@@ -23,6 +31,9 @@ class CottageApiScenarioTest extends WebTestCase
         $this->entityManager->flush();
     }
 
+    /**
+     * @Override
+     */
     protected function tearDown(): void
     {
         $this->entityManager->close();
@@ -36,13 +47,15 @@ class CottageApiScenarioTest extends WebTestCase
             ->setAmenities('WiFi|Pool')
             ->setBedCount(4)
             ->setRowFromSea(100)
-            ->setIsAvailable(true);
+            ->setIsAvailable(true)
+        ;
         $cottage2 = (new Cottage())
             ->setName('Mountain Cabin')
             ->setAmenities('Fireplace')
             ->setBedCount(2)
             ->setRowFromSea(1000)
-            ->setIsAvailable(true);
+            ->setIsAvailable(true)
+        ;
 
         $this->entityManager->persist($cottage1);
         $this->entityManager->persist($cottage2);
@@ -55,6 +68,11 @@ class CottageApiScenarioTest extends WebTestCase
 
         $responseData = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertCount(2, $responseData, 'Должен возвращать два коттеджа');
+        /**
+         * @var array<int, array{name: string}> $responseData
+         */
+        $this->assertTrue(isset($responseData[0]['name']), 'Первый коттедж должен существовать');
+        $this->assertTrue(isset($responseData[1]['name']), 'Второй коттедж должен существовать');
         $this->assertEquals('Beach House', $responseData[0]['name'], 'Первый коттедж должен быть Beach House');
         $this->assertEquals('Mountain Cabin', $responseData[1]['name'], 'Второй коттедж должен быть Mountain Cabin');
     }
@@ -66,7 +84,8 @@ class CottageApiScenarioTest extends WebTestCase
             ->setAmenities('WiFi|Pool')
             ->setBedCount(4)
             ->setRowFromSea(100)
-            ->setIsAvailable(true);
+            ->setIsAvailable(true)
+        ;
         $this->entityManager->persist($cottage);
         $this->entityManager->flush();
 
@@ -79,7 +98,7 @@ class CottageApiScenarioTest extends WebTestCase
             json_encode([
                 'phone' => '+1234567890',
                 'cottageId' => $cottage->getId(),
-                'comment' => 'Test booking'
+                'comment' => 'Test booking',
             ])
         );
 
@@ -117,13 +136,15 @@ class CottageApiScenarioTest extends WebTestCase
             ->setAmenities('WiFi|Pool')
             ->setBedCount(4)
             ->setRowFromSea(100)
-            ->setIsAvailable(true);
+            ->setIsAvailable(true)
+        ;
         $this->entityManager->persist($cottage);
 
         $booking = (new Booking())
             ->setPhone('+1234567890')
             ->setCottage($cottage)
-            ->setComment('Initial comment');
+            ->setComment('Initial comment')
+        ;
         $this->entityManager->persist($booking);
         $this->entityManager->flush();
 
@@ -133,7 +154,7 @@ class CottageApiScenarioTest extends WebTestCase
             [
                 'phone' => '+1234567890',
                 'cottageId' => $cottage->getId(),
-                'comment' => 'Updated comment'
+                'comment' => 'Updated comment',
             ]
         );
 
@@ -153,7 +174,7 @@ class CottageApiScenarioTest extends WebTestCase
             [
                 'phone' => '+9999999999',
                 'cottageId' => 999,
-                'comment' => 'Test comment'
+                'comment' => 'Test comment',
             ]
         );
 
@@ -172,13 +193,15 @@ class CottageApiScenarioTest extends WebTestCase
             ->setAmenities('WiFi|Pool')
             ->setBedCount(4)
             ->setRowFromSea(100)
-            ->setIsAvailable(true);
+            ->setIsAvailable(true)
+        ;
         $this->entityManager->persist($cottage);
 
         $booking = (new Booking())
             ->setPhone('+1234567890')
             ->setCottage($cottage)
-            ->setComment('Test booking');
+            ->setComment('Test booking')
+        ;
         $this->entityManager->persist($booking);
         $this->entityManager->flush();
 
@@ -187,7 +210,7 @@ class CottageApiScenarioTest extends WebTestCase
             '/api/bookings/delete/',
             [
                 'phone' => '+1234567890',
-                'cottageId' => $cottage->getId()
+                'cottageId' => $cottage->getId(),
             ]
         );
 
@@ -206,7 +229,7 @@ class CottageApiScenarioTest extends WebTestCase
             '/api/bookings/delete/',
             [
                 'phone' => '+9999999999',
-                'cottageId' => 999
+                'cottageId' => 999,
             ]
         );
 

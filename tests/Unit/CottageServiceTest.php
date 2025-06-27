@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tests\Service;
 
 use App\Entity\Cottage;
 use App\Service\CottageService;
 use Doctrine\ORM\EntityManagerInterface;
+use Exception;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 class CottageServiceTest extends KernelTestCase
@@ -12,9 +15,15 @@ class CottageServiceTest extends KernelTestCase
     private EntityManagerInterface $entityManager;
     private CottageService $cottageService;
 
+    /**
+     * @Override
+     */
     protected function setUp(): void
     {
         self::bootKernel();
+        /**
+         * @var EntityManagerInterface
+         */
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $this->cottageService = new CottageService($this->entityManager);
 
@@ -22,6 +31,9 @@ class CottageServiceTest extends KernelTestCase
         $this->entityManager->flush();
     }
 
+    /**
+     * @Override
+     */
     protected function tearDown(): void
     {
         $this->entityManager->close();
@@ -32,7 +44,6 @@ class CottageServiceTest extends KernelTestCase
     {
         $cottages = $this->cottageService->getAvailableCottages();
 
-        $this->assertIsArray($cottages, 'Должен возвращать массив');
         $this->assertEmpty($cottages, 'Должен возвращать пустой массив для пустой базы данных');
     }
 
@@ -43,19 +54,22 @@ class CottageServiceTest extends KernelTestCase
             ->setAmenities('WiFi|Pool')
             ->setBedCount(4)
             ->setRowFromSea(100)
-            ->setIsAvailable(true);
+            ->setIsAvailable(true)
+        ;
         $cottage2 = (new Cottage())
             ->setName('Mountain Cabin')
             ->setAmenities('Fireplace')
             ->setBedCount(2)
             ->setRowFromSea(1000)
-            ->setIsAvailable(true);
+            ->setIsAvailable(true)
+        ;
         $cottage3 = (new Cottage())
             ->setName('City Apartment')
             ->setAmenities('Kitchen')
             ->setBedCount(3)
             ->setRowFromSea(500)
-            ->setIsAvailable(false);
+            ->setIsAvailable(false)
+        ;
 
         $this->entityManager->persist($cottage1);
         $this->entityManager->persist($cottage2);
@@ -71,22 +85,22 @@ class CottageServiceTest extends KernelTestCase
                 'name' => 'Beach House',
                 'amenities' => 'WiFi|Pool',
                 'bedCount' => 4,
-                'rowFromSea' => 100
+                'rowFromSea' => 100,
             ],
             [
                 'id' => $cottage2->getId(),
                 'name' => 'Mountain Cabin',
                 'amenities' => 'Fireplace',
                 'bedCount' => 2,
-                'rowFromSea' => 1000
-            ]
+                'rowFromSea' => 1000,
+            ],
         ], array_map(function ($cottage) {
             return [
                 'id' => $cottage['id'],
                 'name' => $cottage['name'],
                 'amenities' => $cottage['amenities'],
                 'bedCount' => $cottage['bedCount'],
-                'rowFromSea' => $cottage['rowFromSea']
+                'rowFromSea' => $cottage['rowFromSea'],
             ];
         }, $cottages), 'Должен возвращать корректные данные коттеджей');
     }
@@ -98,13 +112,15 @@ class CottageServiceTest extends KernelTestCase
             ->setAmenities('WiFi|Pool')
             ->setBedCount(4)
             ->setRowFromSea(100)
-            ->setIsAvailable(false);
+            ->setIsAvailable(false)
+        ;
         $cottage2 = (new Cottage())
             ->setName('Mountain Cabin')
             ->setAmenities('Fireplace')
             ->setBedCount(2)
             ->setRowFromSea(1000)
-            ->setIsAvailable(false);
+            ->setIsAvailable(false)
+        ;
 
         $this->entityManager->persist($cottage1);
         $this->entityManager->persist($cottage2);
@@ -112,7 +128,6 @@ class CottageServiceTest extends KernelTestCase
 
         $cottages = $this->cottageService->getAvailableCottages();
 
-        $this->assertIsArray($cottages, 'Должен возвращать массив');
         $this->assertEmpty($cottages, 'Должен возвращать пустой массив, если нет доступных коттеджей');
     }
 
@@ -122,18 +137,18 @@ class CottageServiceTest extends KernelTestCase
             ->setAmenities('WiFi')
             ->setBedCount(2)
             ->setRowFromSea(100)
-            ->setIsAvailable(true);
+            ->setIsAvailable(true)
+        ;
 
         try {
             $this->entityManager->persist($cottage);
             $this->entityManager->flush();
             $this->fail('Ожидалось исключение из-за отсутствия поля name');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->assertStringContainsString('NOT NULL', $e->getMessage());
         }
 
         $cottages = $this->cottageService->getAvailableCottages();
-        $this->assertIsArray($cottages, 'Должен возвращать массив');
         $this->assertEmpty($cottages, 'Должен возвращать пустой массив при некорректных данных');
     }
 }
