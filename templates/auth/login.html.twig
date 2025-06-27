@@ -1,0 +1,19 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Вход{% endblock %}
+
+{% block body %}
+    <h1>Вход</h1>
+    {% if error %}
+        <div class="alert alert-danger">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+    {% endif %}
+
+    <form action="{{ path('app_login') }}" method="post">
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" value="{{ last_username|default('') }}" required>
+        <label for="password">Пароль:</label>
+        <input type="password" id="password" name="password" required>
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+        <button type="submit">Войти</button>
+    </form>
+{% endblock %}
